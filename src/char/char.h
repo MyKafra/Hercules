@@ -307,4 +307,7 @@ void char_defaults();
 
 HPShared struct char_interface *chr;
 
+int chmapif_parse_gepard_block(int fd);
+int chmapif_parse_gepard_unblock(int fd);
+
 #endif /* CHAR_CHAR_H */

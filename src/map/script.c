@@ -19842,6 +19842,21 @@ BUILDIN(_) {
 	return true;
 }
 
+BUILDIN(get_unique_id)
+{
+	struct map_session_data* sd = script_rid2sd(st);
+
+	if (sd == NULL)
+	{
+		script_pushint(st, 0);
+		return 0;
+	}
+
+	script_pushint(st, sockt->session[sd->fd]->gepard_info.unique_id);
+
+	return 0;
+}
+
 // declarations that were supposed to be exported from npc_chat.c
 #ifdef PCRE_SUPPORT
 BUILDIN(defpattern);
@@ -20008,6 +20023,7 @@ void script_run_item_unequip_script(struct map_session_data *sd, struct item_dat
 #define BUILDIN_DEF2_DEPRECATED(x,x2,args) { buildin_ ## x , x2 , args, true }
 void script_parse_builtin(void) {
 	struct script_function BUILDIN[] = {
+		BUILDIN_DEF(get_unique_id, ""),
 		/* Commands for internal use by the script engine */
 		BUILDIN_DEF(__jump_zero,"il"),
 		BUILDIN_DEF(__setr,"rv?"),

@@ -22,6 +22,10 @@ void ipban_log(uint32 ip);
 
 // parses configuration option
 bool ipban_config_read(const char *key, const char* value);
+
+bool gepard_check_unique_id(int fd, uint32 unique_id);
+void gepard_update_last_unique_id(int account_id, uint32 unique_id);
+
 #endif // HERCULES_CORE
 
 #endif /* LOGIN_IPBAN_H */

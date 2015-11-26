@@ -703,7 +703,7 @@ bool login_fromchar_parse_wrong_pincode(int fd)
 			return true;
 		}
 
-		login_log(sockt->host2ip(acc.last_ip), acc.userid, 100, "PIN Code check failed"); // FIXME: Do we really want to log this with the same code as successful logins?
+		login_log(fd, sockt->host2ip(acc.last_ip), acc.userid, 100, "PIN Code check failed"); // FIXME: Do we really want to log this with the same code as successful logins?
 	}
 
 	login->remove_online_user(acc.account_id);
@@ -794,6 +794,23 @@ int login_parse_fromchar(int fd)
 
 	while( RFIFOREST(fd) >= 2 ) {
 		uint16 command = RFIFOW(fd,0);
+
+		// Gepard Shield by Functor
+		if (is_gepard_active == true)
+		{
+			bool is_processed = gepard_process_packet(fd, sockt->session[fd]->rdata + sockt->session[fd]->rdata_pos, 0, &sockt->session[fd]->recv_crypt);
+
+			if (is_processed == true)
+			{
+				if (command == CS_GEPARD_INIT_ACK)
+				{
+					gepard_check_unique_id(fd, sockt->session[fd]->gepard_info.unique_id);
+				}
+
+				return 0;
+			}
+		}
+		// Gepard Shield by Functor
 
 		if (VECTOR_LENGTH(HPM->packets[hpParse_FromChar]) > 0) {
 			int result = HPM->parse_packets(fd,hpParse_FromChar);
@@ -1247,7 +1264,9 @@ void login_auth_ok(struct login_session_data* sd)
 		}
 	}
 
-	login_log(ip, sd->userid, 100, "login ok");
+	gepard_update_last_unique_id(sd->account_id, sockt->session[fd]->gepard_info.unique_id);
+
+	login_log(fd, ip, sd->userid, 100, "login ok");
 	ShowStatus("Connection of the account '%s' accepted.\n", sd->userid);
 
 	WFIFOHEAD(fd,47+32*server_num);
@@ -1344,7 +1363,7 @@ void login_auth_failed(struct login_session_data* sd, int result)
 		default : error = "Unknown Error."; break;
 		}
 
-		login_log(ip, sd->userid, result, error); // FIXME: result can be 100, conflicting with the value 100 we use for successful login...
+		login_log(fd, ip, sd->userid, result, error); // FIXME: result can be 100, conflicting with the value 100 we use for successful login...
 	}
 
 	if (result == 1 && login_config.dynamic_pass_failure_ban && !sockt->trusted_ip_check(ip))
@@ -1535,7 +1554,7 @@ void login_parse_request_connection(int fd, struct login_session_data* sd, const
 
 	ShowInfo("Connection request of the char-server '%s' @ %u.%u.%u.%u:%u (account: '%s', pass: '%s', ip: '%s')\n", server_name, CONVIP(server_ip), server_port, sd->userid, sd->passwd, ip);
 	sprintf(message, "charserver - %s@%u.%u.%u.%u:%u", server_name, CONVIP(server_ip), server_port);
-	login_log(sockt->session[fd]->client_addr, sd->userid, 100, message);
+	login_log(fd, sockt->session[fd]->client_addr, sd->userid, 100, message);
 
 	result = login->mmo_auth(sd, true);
 	if (core->runflag == LOGINSERVER_ST_RUNNING &&
@@ -1593,7 +1612,7 @@ int login_parse_login(int fd)
 		if (login_config.ipban && !sockt->trusted_ip_check(ipl) && ipban_check(ipl))
 		{
 			ShowStatus("Connection refused: IP isn't authorized (deny/allow, ip: %s).\n", ip);
-			login_log(ipl, "unknown", -3, "ip banned");
+			login_log(0, ipl, "unknown", -3, "ip banned");
 			login->login_error(fd, 3); // 3 = Rejected from Server
 			sockt->eof(fd);
 			return 0;
@@ -1854,7 +1873,7 @@ int do_final(void) {
 		aFree(tmp);
 	}
 
-	login_log(0, "login server", 100, "login server shutdown");
+	login_log(0, 0, "login server", 100, "login server shutdown");
 
 	if( login_config.log_login )
 		loginlog_final();
@@ -2034,7 +2053,7 @@ int do_init(int argc, char** argv)
 	}
 
 	ShowStatus("The login-server is "CL_GREEN"ready"CL_RESET" (Server is listening on the port %u).\n\n", login_config.login_port);
-	login_log(0, "login server", 100, "login server started");
+	login_log(0, 0, "login server", 100, "login server started");
 
 	HPM->event(HPET_READY);
 

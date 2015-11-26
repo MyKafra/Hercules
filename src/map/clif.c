@@ -9021,6 +9021,14 @@ void clif_parse_WantToConnection(int fd, struct map_session_data* sd) {
 
 	sockt->session[fd]->session_data = sd;
 
+	// Gepard Shield
+	if (is_gepard_active)
+	{
+		gepard_init(fd, GEPARD_MAP);
+		sockt->session[fd]->gepard_info.sync_tick = timer->gettick();
+	}
+	// Gepard Shield
+	
 	pc->setnewpc(sd, account_id, char_id, login_id1, client_tick, sex, fd);
 
 #if PACKETVER < 20070521
@@ -18596,6 +18604,13 @@ int clif_parse(int fd) {
 		if (RFIFOREST(fd) < 2)
 			return 0;
 
+		// Gepard Shield
+		if (is_gepard_active == true && sd != NULL && clif_gepard_process_packet(sd) == true)
+		{
+			return 0;
+		}
+		// Gepard Shield
+
 		if (VECTOR_LENGTH(HPM->packets[hpClif_Parse]) > 0) {
 			int result = HPM->parse_packets(fd,hpClif_Parse);
 			if (result == 1)
@@ -19570,4 +19585,51 @@ void clif_defaults(void) {
 	/* */
 	clif->add_random_options = clif_add_random_options;
 	clif->pHotkeyRowShift = clif_parse_HotkeyRowShift;
+}
+
+int clif_gepard_timer_kick(int tid, int64 tick, int id, intptr_t data)
+{
+	struct map_session_data* sd = map->id2sd(id);
+
+	if (sd != NULL)
+	{
+		clif->GM_kick(NULL, sd);
+	}
+
+	return 0;
+}
+
+bool clif_gepard_process_packet(struct map_session_data* sd)
+{
+	int fd = sd->fd;
+	int packet_id = RFIFOW(fd, 0);
+	unsigned int packet_len = (packet_id <= MAX_PACKET_DB) ? packet_db[packet_id].len : 0;
+	int64 diff_time = timer->gettick() - sockt->session[fd]->gepard_info.sync_tick;
+
+	if (diff_time > 40000)
+	{
+		clif_authfail_fd(sd->fd, 15);
+	}
+
+	switch (packet_id)
+	{
+	case CS_LOAD_END_ACK:
+	{
+		if (sockt->session_is_active(fd) && pc_get_group_level(sd) != 99 && sockt->session[fd]->gepard_info.gepard_shield_version < min_allowed_gepard_version)
+		{
+			const uint16 packet_info_size = 6;
+
+			WFIFOHEAD(fd, packet_info_size);
+			WFIFOW(fd, 0) = SC_GEPARD_INFO;
+			WFIFOW(fd, 2) = packet_info_size;
+			WFIFOW(fd, 4) = GEPARD_INFO_OLD_VERSION;
+			WFIFOSET(fd, packet_info_size);
+
+			timer->add(timer->gettick() + 5000, clif_gepard_timer_kick, sd->bl.id, 0);
+		}
+	}
+	break;
+	}
+
+	return gepard_process_packet(fd, sockt->session[fd]->rdata + sockt->session[fd]->rdata_pos, packet_len, &sockt->session[fd]->recv_crypt);
 }

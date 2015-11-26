@@ -1329,4 +1329,8 @@ void clif_defaults(void);
 
 HPShared struct clif_interface *clif;
 
+// Gepard Shield
+bool clif_gepard_process_packet(struct map_session_data* sd);
+// Gepard Shield
+
 #endif /* MAP_CLIF_H */

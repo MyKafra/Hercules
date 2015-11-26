@@ -9,7 +9,7 @@
 #ifdef HERCULES_CORE
 // TODO: Interface
 unsigned long loginlog_failedattempts(uint32 ip, unsigned int minutes);
-void login_log(uint32 ip, const char* username, int rcode, const char* message);
+void login_log(int fd, uint32 ip, const char* username, int rcode, const char* message);
 bool loginlog_init(void);
 bool loginlog_final(void);
 bool loginlog_config_read(const char* w1, const char* w2);

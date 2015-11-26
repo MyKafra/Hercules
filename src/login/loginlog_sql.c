@@ -62,25 +62,29 @@ unsigned long loginlog_failedattempts(uint32 ip, unsigned int minutes)
  * Records an event in the login log
  *---------------------------------------------*/
 // TODO: add an enum of rcode values
-void login_log(uint32 ip, const char* username, int rcode, const char* message)
+void login_log(int fd, uint32 ip, const char* username, int rcode, const char* message)
 {
-	char esc_username[NAME_LENGTH*2+1];
-	char esc_message[255*2+1];
+	char esc_username[NAME_LENGTH * 2 + 1];
+	char esc_message[255 * 2 + 1];
+	unsigned int unique_id = 0;
 	int retcode;
 
-	nullpo_retv(username);
-	nullpo_retv(message);
-	if( !enabled )
+	if (!enabled)
 		return;
+
+	if (fd != 0)
+	{
+		unique_id = sockt->session[fd]->gepard_info.unique_id;
+	}
 
 	SQL->EscapeStringLen(sql_handle, esc_username, username, strnlen(username, NAME_LENGTH));
 	SQL->EscapeStringLen(sql_handle, esc_message, message, strnlen(message, 255));
 
 	retcode = SQL->Query(sql_handle,
-		"INSERT INTO `%s`(`time`,`ip`,`user`,`rcode`,`log`) VALUES (NOW(), '%s', '%s', '%d', '%s')",
-		log_login_db, sockt->ip2str(ip,NULL), esc_username, rcode, esc_message);
+		"INSERT INTO `%s`(`time`,`ip`,`user`,`rcode`,`unique_id`,`log`) VALUES (NOW(), '%s', '%s', '%d', '%u', '%s')",
+		log_login_db, sockt->ip2str(ip, NULL), esc_username, rcode, unique_id, esc_message);
 
-	if( retcode != SQL_SUCCESS )
+	if (retcode != SQL_SUCCESS)
 		Sql_ShowDebug(sql_handle);
 }
 

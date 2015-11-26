@@ -156,4 +156,9 @@ void chrif_defaults(void);
 
 HPShared struct chrif_interface *chrif;
 
+int chrif_gepard_req_block(unsigned int unique_id, const char* violator_name, unsigned int violator_aid, const char* initiator_name, unsigned int initiator_aid, const char* unban_time_str, const char* reason_str);
+bool chrif_gepard_ack_block(int fd);
+int chrif_gepard_req_unblock(unsigned int unique_id, const char* violator_name, unsigned int violator_aid, unsigned int initiator_aid);
+bool chrif_gepard_ack_unblock(int fd);
+
 #endif /* MAP_CHRIF_H */
