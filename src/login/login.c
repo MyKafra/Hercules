@@ -795,23 +795,6 @@ int login_parse_fromchar(int fd)
 	while( RFIFOREST(fd) >= 2 ) {
 		uint16 command = RFIFOW(fd,0);
 
-		// Gepard Shield by Functor
-		if (is_gepard_active == true)
-		{
-			bool is_processed = gepard_process_packet(fd, sockt->session[fd]->rdata + sockt->session[fd]->rdata_pos, 0, &sockt->session[fd]->recv_crypt);
-
-			if (is_processed == true)
-			{
-				if (command == CS_GEPARD_INIT_ACK)
-				{
-					gepard_check_unique_id(fd, sockt->session[fd]->gepard_info.unique_id);
-				}
-
-				return 0;
-			}
-		}
-		// Gepard Shield by Functor
-
 		if (VECTOR_LENGTH(HPM->packets[hpParse_FromChar]) > 0) {
 			int result = HPM->parse_packets(fd,hpParse_FromChar);
 			if (result == 1)
@@ -1626,6 +1609,23 @@ int login_parse_login(int fd)
 
 	while( RFIFOREST(fd) >= 2 ) {
 		uint16 command = RFIFOW(fd,0);
+
+		// Gepard Shield by Functor
+		if (is_gepard_active == true)
+		{
+			bool is_processed = gepard_process_packet(fd, sockt->session[fd]->rdata + sockt->session[fd]->rdata_pos, 0, &sockt->session[fd]->recv_crypt);
+
+			if (is_processed == true)
+			{
+				if (command == CS_GEPARD_INIT_ACK)
+				{
+					gepard_check_unique_id(fd, sockt->session[fd]->gepard_info.unique_id);
+				}
+
+				return 0;
+			}
+		}
+		// Gepard Shield by Functor
 
 		if (VECTOR_LENGTH(HPM->packets[hpParse_Login]) > 0) {
 			int result = HPM->parse_packets(fd,hpParse_Login);
